@@ -4,6 +4,8 @@ from models import UserTable
 from schemas import UserRequest, UserRequestCreate
 from typing import List
 from sqlalchemy.orm import Session
+import hashlib
+import bcrypt
 
 # Create the database
 Base.metadata.create_all(engine)
@@ -21,6 +23,15 @@ def get_session():
         session.close()
 
 
+# hash password
+def get_hashed_pass(passwd: str):
+    salt = bcrypt.gensalt()
+    hashed_pass = hashlib.md5((passwd + str(salt)).encode())
+    pass_to_str = hashed_pass.hexdigest()
+
+    return pass_to_str
+
+
 @app.get("/")
 def root():
     return "FAlearning"
@@ -29,7 +40,7 @@ def root():
 @app.post("/user", status_code=status.HTTP_201_CREATED)
 def create_user(user: UserRequestCreate, session: Session = Depends(get_session)):
     # create an instance of the User db model
-    usrdb = UserTable(name=user.name)  # , password=user.password)
+    usrdb = UserTable(name=user.name, password=get_hashed_pass(user.password))
 
     # add it to the session and commit it
     session.add(usrdb)
@@ -54,7 +65,7 @@ def read_user(id: int, session: Session = Depends(get_session)):
 
 
 @app.put("/user/{id}")
-def update_user(id: int, name: str, session: Session = Depends(get_session)):
+def update_user(id: int, name: str, password: str, session: Session = Depends(get_session)):
     # get the user item with the given id
     user = session.query(UserTable).get(id)
 
@@ -62,6 +73,7 @@ def update_user(id: int, name: str, session: Session = Depends(get_session)):
     # (if an item with the given id was found)
     if user:
         user.name = name
+        user.password = get_hashed_pass(password)
         session.commit()
 
     # check if user item with given id exists.

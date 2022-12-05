@@ -6,5 +6,5 @@ from database import Base
 class UserTable(Base):
     __tablename__ = 'users_table'
     id = Column(Integer, primary_key=True)
-    name = Column(String(256))
-    # password = Column(String(10))
+    name = Column(String(12))
+    password = Column(String(100))
