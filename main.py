@@ -39,13 +39,20 @@ def root():
 
 @app.post("/user", status_code=status.HTTP_201_CREATED)
 def create_user(user: UserRequestCreate, session: Session = Depends(get_session)):
-    # create an instance of the User db model
-    usrdb = UserTable(name=user.name, password=get_hashed_pass(user.password))
+    # checking for no duplicate username // doesn't work yet(
+    user_name = session.query(UserTable).get(user.name)
 
-    # add it to the session and commit it
-    session.add(usrdb)
-    session.commit()
-    session.refresh(usrdb)
+    if not user_name:
+        # create an instance of the User db model
+        usrdb = UserTable(name=user.name, password=get_hashed_pass(user.password))
+
+        # add it to the session and commit it
+        session.add(usrdb)
+        session.commit()
+        session.refresh(usrdb)
+    else:
+        raise HTTPException(status_code=404,
+                            detail=f"user with name {user.name} already registered")
 
     # return the id
     return usrdb
