@@ -1,10 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError, validator
 
 
 # Create UserRequest Schema (Pydantic Model)
-class UserRequestCreate(BaseModel):
+class UserCreate(BaseModel):
     name: str
     password: str
+
+    # @validator('name')
+    # def name_must_unique(self, v):
+    #     if
 
 
 # Complete UserRequest Schema (Pydantic Model)

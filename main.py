@@ -1,7 +1,9 @@
 from fastapi import FastAPI, status, HTTPException, Depends
+from sqlalchemy import select, text
+
 from database import Base, engine, SessionLocal
 from models import UserTable
-from schemas import UserRequest, UserRequestCreate
+from schemas import UserRequest, UserCreate
 from typing import List
 from sqlalchemy.orm import Session
 import hashlib
@@ -11,7 +13,7 @@ import bcrypt
 Base.metadata.create_all(engine)
 
 # Initialize app
-app = FastAPI()
+app = FastAPI(title="Users")
 
 
 # Helper function to get database session
@@ -32,27 +34,46 @@ def get_hashed_pass(passwd: str):
     return pass_to_str
 
 
+# helping func
+# def get_by_name(name: str):
+#     query = users.select().where(users.c.email==email)
+#     user = await self.database.fetch_one(query)
+#     if user is None:
+#         return None
+#     return User.parse_obj(user)
+
+
 @app.get("/")
 def root():
     return "FAlearning"
 
 
 @app.post("/user", status_code=status.HTTP_201_CREATED)
-def create_user(user: UserRequestCreate, session: Session = Depends(get_session)):
+def create_user(user: UserCreate, session: Session = Depends(get_session)):
     # checking for no duplicate username // doesn't work yet(
-    user_name = session.query(UserTable).get(user.name)
+    # user_name = session.query(UserTable.name).distinct(text('user.name'))
 
-    if not user_name:
-        # create an instance of the User db model
-        usrdb = UserTable(name=user.name, password=get_hashed_pass(user.password))
+    user_name = select(UserTable.name).where(UserTable.name == user.name)
 
-        # add it to the session and commit it
-        session.add(usrdb)
-        session.commit()
-        session.refresh(usrdb)
-    else:
-        raise HTTPException(status_code=404,
-                            detail=f"user with name {user.name} already registered")
+    print(user_name)
+    print(type(user_name))
+
+    usrdb = None
+    with engine.connect() as conn:
+        for row in conn.execute(user_name).first():
+            print(row)
+            if not row:
+
+                # create an instance of the User db model
+                usrdb = UserTable(name=row, password=get_hashed_pass(user.password))
+
+                # add it to the session and commit it
+                session.add(usrdb)
+                session.commit()
+                session.refresh(usrdb)
+            else:
+                raise HTTPException(status_code=403,
+                                    detail=f"user with name {user.name} already registered")
 
     # return the id
     return usrdb
@@ -63,6 +84,7 @@ def read_user(id: int, session: Session = Depends(get_session)):
     # get the user item with the given id
     user = session.query(UserTable).get(id)
 
+    print(user)
     # check if UserTable item with given id exists.
     # If not, raise exception and return 404 not found response
     if not user:
