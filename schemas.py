@@ -1,21 +1,17 @@
-from pydantic import BaseModel, ValidationError, validator
+from pydantic import BaseModel, SecretStr
 
 
 # Create UserRequest Schema (Pydantic Model)
 class UserCreate(BaseModel):
     name: str
-    password: str
-
-    # @validator('name')
-    # def name_must_unique(self, v):
-    #     if
+    password: SecretStr
 
 
 # Complete UserRequest Schema (Pydantic Model)
 class UserRequest(BaseModel):
     id: int
     name: str
-    password: str
+    password: SecretStr
 
     class Config:
         orm_mode = True
